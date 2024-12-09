@@ -22,6 +22,8 @@ public class PlayerController : MonoBehaviour
     public float accelerationTime = 0.25f;
     public float decelerationTime = 0.15f;
 
+    public float dashSpeed = 10;
+
     [Header("Vertical")]
     public float apexHeight = 3f;
     public float apexTime = 0.5f;
@@ -38,6 +40,8 @@ public class PlayerController : MonoBehaviour
     private float initialJumpSpeed;
 
     private bool isGrounded = false;
+    private bool isDoubleJump = false;
+    private bool isDash = false;
     public bool isDead = false;
 
     private Vector2 velocity;
@@ -65,6 +69,7 @@ public class PlayerController : MonoBehaviour
         if (isDead)
         {
             currentState = PlayerState.dead;
+            playerInput.x = 0;
         }
 
         switch(currentState)
@@ -107,6 +112,26 @@ public class PlayerController : MonoBehaviour
         else if (playerInput.x > 0)
             currentDirection = PlayerDirection.right;
 
+        if (Input.GetKey(KeyCode.Q) && !isDash && !isGrounded)
+        {
+
+            isDash = true;
+            if (currentDirection == PlayerDirection.left)
+            {
+                velocity.x = -dashSpeed + velocity.x;
+            }
+            else if (currentDirection == PlayerDirection.right)
+            {
+                velocity.x = dashSpeed + velocity.x;
+                
+            }
+            Debug.Log(velocity.x);
+        }
+        else if (isGrounded)
+        {
+            isDash = false;
+        }
+
         if (playerInput.x != 0)
         {
             velocity.x += accelerationRate * playerInput.x * Time.deltaTime;
@@ -125,14 +150,37 @@ public class PlayerController : MonoBehaviour
                 velocity.x = Mathf.Min(velocity.x, 0);
             }
         }
+
+        
+    }
+
+    private void OnCollisionEnter2D(Collision2D collision)
+    {
+        isDoubleJump = true;
+        isDash = false;
+        isGrounded = true;
+        velocity.y = initialJumpSpeed;
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        isDead = true;
     }
 
     private void JumpUpdate()
     {
-        if (isGrounded && Input.GetButton("Jump"))
+        if (isDoubleJump && Input.GetButtonDown("Jump"))
         {
+            Debug.Log("Double Jump");
+            velocity.y = initialJumpSpeed;
+            isDoubleJump = false;
+        }
+        else if (isGrounded && Input.GetButton("Jump"))
+        {
+            Debug.Log("Single Jump");
             velocity.y = initialJumpSpeed;
             isGrounded = false;
+            isDoubleJump = true;
         }
     }
 
